@@ -493,7 +493,7 @@ export function WorkshopSection() {
               </div>
 
               <Link
-                href="/practice"
+                href="/auth"
                 className="btn-tactile mt-8 inline-flex h-[48px] w-[214px] items-center justify-between rounded-[10px] bg-[#242126] px-[18px] text-[13px] font-semibold leading-[18.2px] text-white"
               >
                 <span>Start an interview</span>

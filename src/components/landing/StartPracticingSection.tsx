@@ -176,7 +176,7 @@ export function StartPracticingSection() {
             </div>
 
             <Link
-              href="/practice"
+              href="/auth"
               data-cta-fade=""
               className="btn-tactile mt-[28px] inline-flex h-[54px] w-[238px] items-center justify-between rounded-[10px] bg-[#242126] px-[22px] text-[15px] font-semibold leading-[21px] text-white lg:mt-[51px]"
             >

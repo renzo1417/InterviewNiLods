@@ -806,7 +806,7 @@ export function HeroSection() {
           {/* Distinct Primary & Secondary CTA Hierarchy */}
           <div className="mt-[26px] flex flex-wrap items-center justify-center gap-3.5 sm:mt-[30px] sm:gap-4">
             <Link
-              href="/practice"
+              href="/auth"
               data-hero-cta=""
               data-hero-init=""
               className="btn-tactile inline-flex h-[46px] min-w-[166px] items-center justify-between gap-3 rounded-[11px] bg-[#57367d] px-[22px] text-[14px] font-semibold leading-[1.45] text-white shadow-[0_8px_24px_-6px_rgba(87,54,125,0.45)] hover:bg-[#492c6b] sm:h-[48px] sm:min-w-[178px] sm:px-[24px] sm:text-[14.5px]"

@@ -204,7 +204,7 @@ export function LandingNavbar() {
           {/* Right: CTA + Mobile Menu Toggle */}
           <div className="flex items-center gap-2 sm:gap-3" data-nav-item="">
             <Link
-              href="/practice"
+              href="/auth"
               className="btn-tactile inline-flex h-[38px] items-center justify-center gap-[7px] rounded-[11px] bg-white px-3.5 text-[12px] font-semibold leading-[1.45] text-[#423052] shadow-[0_2px_10px_rgba(0,0,0,0.12)] hover:bg-[#f4effa] sm:h-[42px] sm:min-w-[148px] sm:px-4 sm:text-[13px]"
             >
               <span className="whitespace-nowrap">Start practice</span>
