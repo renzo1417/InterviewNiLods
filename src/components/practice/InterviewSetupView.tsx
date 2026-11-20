@@ -181,7 +181,7 @@ export function InterviewSetupView({
 
   return (
     <div
-      className="relative flex min-h-full flex-1 flex-col items-center justify-center overflow-x-hidden overflow-y-auto px-4 py-7 sm:px-8 sm:py-9 [@media(max-height:800px)]:py-5"
+      className="relative flex min-h-full flex-1 flex-col items-center justify-center overflow-x-hidden overflow-y-auto px-4 pt-7 pb-24 sm:px-8 sm:pt-9 lg:pb-9 [@media(max-height:800px)]:py-5 [@media(max-height:800px)]:pb-24 lg:[@media(max-height:800px)]:pb-5"
       style={{
         background: "linear-gradient(180deg, #ffffff 0%, #f5f1fc 100%)",
       }}

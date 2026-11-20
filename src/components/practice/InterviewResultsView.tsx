@@ -24,7 +24,7 @@ export function InterviewResultsView({
   onPracticeAgain,
 }: InterviewResultsViewProps) {
   return (
-    <div className="min-h-0 flex-1 overflow-y-auto bg-white px-5 py-6 sm:px-10 lg:px-[48px] lg:py-[32px]">
+    <div className="min-h-0 flex-1 overflow-y-auto bg-white px-5 py-6 pb-24 sm:px-10 lg:px-[48px] lg:py-[32px] lg:pb-10">
       <div className="mx-auto max-w-[1104px] space-y-[24px]">
         {/* Header block */}
         <div className="flex flex-wrap items-end justify-between gap-4">
