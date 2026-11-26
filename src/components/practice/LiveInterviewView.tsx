@@ -18,6 +18,8 @@ interface LiveInterviewViewProps {
   scorePanelOpen: boolean;
   showStarTips?: boolean;
   showVoiceShortcut?: boolean;
+  isSubmitting?: boolean;
+  notice?: string | null;
   onToggleScorePanel: (open: boolean) => void;
   onSubmitAnswer: (answer: string) => void;
 }
@@ -61,6 +63,8 @@ export function LiveInterviewView({
   scorePanelOpen,
   showStarTips = true,
   showVoiceShortcut = true,
+  isSubmitting = false,
+  notice = null,
   onToggleScorePanel,
   onSubmitAnswer,
 }: LiveInterviewViewProps) {
@@ -140,7 +144,7 @@ export function LiveInterviewView({
 
   const handleSend = () => {
     const trimmed = draft.trim();
-    if (!trimmed) return;
+    if (!trimmed || isSubmitting) return;
     onSubmitAnswer(trimmed);
     setDraft("");
     setMicHint(null);
@@ -361,12 +365,17 @@ export function LiveInterviewView({
                   Chat with Sir Bot
                 </h1>
               </div>
-              <p className="mt-[3px] text-[12px] leading-[1.55] text-[#796985]">
-                {config.role}
+              <p className="mt-[3px] flex flex-wrap items-center gap-y-1 text-[12px] leading-[1.55] text-[#796985]">
+                <span>{config.role}</span>
                 <span className="mx-2">/</span>
-                {config.difficulty} difficulty
+                <span>{config.difficulty} difficulty</span>
                 <span className="mx-2">/</span>
-                {config.tone}
+                <span>{config.tone}</span>
+                {session.resumeFilename ? (
+                  <span className="ml-2.5 inline-flex items-center rounded-full bg-[#eee6fa] px-2.5 py-0.5 text-[10px] font-medium text-[#5d3f7f]">
+                    Resume RAG · {session.resumeFilename}
+                  </span>
+                ) : null}
               </p>
             </div>
 
@@ -467,11 +476,33 @@ export function LiveInterviewView({
                 </article>
               );
             })}
+            {isSubmitting ? (
+              <article className="space-y-[10px] opacity-80">
+                <div className="flex items-center gap-[8px] pl-[4px]">
+                  <SirBotMark className="h-[21px] w-[19px] shrink-0" />
+                  <span className="text-[12px] font-semibold leading-[1.55] text-[#51425e]">
+                    Sir Bot
+                  </span>
+                  <span className="text-[10px] leading-[1.55] text-[#796985]">Reviewing…</span>
+                </div>
+                <p className="pl-[28px] text-[14px] leading-[1.55] text-[#796985] sm:pl-[31px]">
+                  Scoring your response against the STAR rubric…
+                </p>
+              </article>
+            ) : null}
             <div ref={threadEndRef} />
           </div>
 
           {/* Answer composer & coaching hint */}
           <div className="mt-auto shrink-0 pt-2">
+            {notice ? (
+              <div
+                role="status"
+                className="mb-2.5 rounded-[12px] border border-[#e3daf1] bg-[#f7f4fa] px-3.5 py-2 text-[12px] text-[#5d3f7f]"
+              >
+                {notice}
+              </div>
+            ) : null}
             <div className="rounded-[16px] border border-[#e6e1ed] bg-[#f8f7fa] px-[16px] pt-[14px] pb-[12px] transition-colors focus-within:border-[#bda5db] focus-within:bg-[#fbfafd] sm:px-[19px]">
               <label htmlFor="interview-answer-input" className="sr-only">
                 Your interview answer
@@ -518,10 +549,10 @@ export function LiveInterviewView({
                 <button
                   type="button"
                   onClick={handleSend}
-                  disabled={!draft.trim()}
+                  disabled={!draft.trim() || isSubmitting}
                   className="btn-tactile group inline-flex h-[34px] min-w-[96px] shrink-0 cursor-pointer items-center justify-between gap-3 rounded-[10px] bg-[#ccbdf4] px-[16px] text-[12px] font-semibold text-[#3a2a50] hover:bg-[#bea9ee] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7453a6] disabled:cursor-not-allowed disabled:opacity-55 sm:min-w-[100px] sm:px-[18px]"
                 >
-                  <span>Send</span>
+                  <span>{isSubmitting ? "Wait…" : "Send"}</span>
                   <img
                     src="/assets/practice/conv-send-arrow.svg"
                     alt=""

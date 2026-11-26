@@ -8,13 +8,7 @@ export type QuestionRange = "3-5" | "5-8" | "8-10";
 
 export type CoachTone = "Friendly" | "Witty" | "Direct";
 
-export type JobRole =
-  | "Software Engineer"
-  | "Product Designer"
-  | "Product Manager"
-  | "Data Analyst"
-  | "Frontend Developer"
-  | "Customer Success";
+export type JobRole = string;
 
 export interface InterviewSetupConfig {
   role: JobRole;
@@ -88,6 +82,8 @@ export interface PracticeSessionState {
   turns: ChatTurn[];
   liveScore: LiveScoreSnapshot | null;
   finalResults: FinalResultsSummary | null;
+  resumeFilename?: string | null;
+  ragSources?: string[];
 }
 
 export const JOB_ROLE_OPTIONS: ReadonlyArray<JobRole> = [
@@ -136,7 +132,7 @@ interface PromptBlueprint {
   takeawayHint: string;
 }
 
-const ROLE_PROMPTS: Record<JobRole, PromptBlueprint[]> = {
+const ROLE_PROMPTS: Record<string, PromptBlueprint[]> = {
   "Software Engineer": [
     {
       topic: "Introduction",
@@ -745,9 +741,49 @@ export function createSeededProductDesignerSession(): PracticeSessionState {
   };
 }
 
+export function getRolePrompts(role: string): PromptBlueprint[] {
+  const trimmed = role.trim();
+  if (trimmed && ROLE_PROMPTS[trimmed]) {
+    return ROLE_PROMPTS[trimmed];
+  }
+  const label = trimmed || "this role";
+  return [
+    {
+      topic: "Introduction",
+      shortTitle: "Tell me about yourself",
+      question: `Tell me about yourself and what draws you to ${label} work right now.`,
+      takeawayHint: `Connect your background directly to ${label}.`,
+    },
+    {
+      topic: "Core experience",
+      shortTitle: "A project you’re proud of",
+      question: `Walk me through a ${label} project or responsibility you owned end-to-end.`,
+      takeawayHint: "Highlight clear personal ownership and decisions.",
+    },
+    {
+      topic: "Handling pressure",
+      shortTitle: "Handling pressure",
+      question: `Tell me about a time you handled unexpected pressure or a tight deadline in ${label}.`,
+      takeawayHint: "Add a measurable outcome to your story.",
+    },
+    {
+      topic: "Collaboration",
+      shortTitle: "Working with others",
+      question: "How did you coordinate with teammates or stakeholders when priorities conflicted?",
+      takeawayHint: "Be specific about how you aligned people.",
+    },
+    {
+      topic: "Reflection",
+      shortTitle: "Final reflection",
+      question: `What habit or lesson helps you keep growing in ${label}?`,
+      takeawayHint: "End with a concrete, forward-looking takeaway.",
+    },
+  ];
+}
+
 export function createFreshInterviewSession(config: InterviewSetupConfig): PracticeSessionState {
   const totalQuestions = QUESTION_COUNT_BY_RANGE[config.questionRange];
-  const blueprint = ROLE_PROMPTS[config.role][0];
+  const blueprint = getRolePrompts(config.role)[0];
   const toneGreeting: Record<CoachTone, string> = {
     Friendly: "Warm welcome! Take a breath — let’s ease into Question 1. ",
     Witty: "Mic check, deep breath, let’s make Sir Bot proud. Question 1: ",
@@ -893,7 +929,7 @@ export function evaluateAnswerAndAdvance(
   };
 
   const nextQuestionNum = qNumber + 1;
-  const rolePool = ROLE_PROMPTS[session.config.role];
+  const rolePool = getRolePrompts(session.config.role);
 
   if (nextQuestionNum > session.totalQuestions) {
     const completedSession: PracticeSessionState = {
@@ -949,7 +985,7 @@ export function buildCompletedResultsSession(
     return createSeededSoftwareEngineerSession("completed");
   }
 
-  const prompts = ROLE_PROMPTS[session.config.role];
+  const prompts = getRolePrompts(session.config.role);
   const userMessages = session.turns.filter((t) => t.sender === "user");
   const botMessages = session.turns.filter((t) => t.sender === "sir-bot");
 

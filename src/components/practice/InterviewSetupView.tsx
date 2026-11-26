@@ -2,6 +2,7 @@
 
 import React, { useEffect, useId, useRef, useState } from "react";
 import { SirBotMark } from "@/components/landing/SirBotMark";
+import type { UploadedResumeInfo } from "@/lib/interview-api";
 import {
   DIFFICULTY_OPTIONS,
   ESTIMATED_MINUTES_BY_RANGE,
@@ -19,6 +20,12 @@ interface InterviewSetupViewProps {
   config: InterviewSetupConfig;
   onChangeConfig: (next: InterviewSetupConfig) => void;
   onStartInterview: () => void;
+  uploadedResume?: UploadedResumeInfo | null;
+  isUploadingResume?: boolean;
+  resumeError?: string | null;
+  isStarting?: boolean;
+  onUploadResume?: (file: File) => void;
+  onRemoveResume?: () => void;
 }
 
 interface SetupDropdownProps<T extends string> {
@@ -153,6 +160,158 @@ function SetupDropdown<T extends string>({
 }
 
 /**
+ * Flexible role combobox: users can type any custom job role or pick from preset suggestions.
+ */
+function RoleCombobox({
+  label,
+  value,
+  options,
+  onChange,
+  leadingIconSrc,
+}: {
+  label: string;
+  value: string;
+  options: ReadonlyArray<string>;
+  onChange: (next: string) => void;
+  leadingIconSrc?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const inputId = useId();
+  const listboxId = useId();
+
+  useEffect(() => {
+    if (!open) return;
+    const handleOutside = (event: MouseEvent) => {
+      if (rootRef.current && !rootRef.current.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    };
+    const handleKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("mousedown", handleOutside);
+    window.addEventListener("keydown", handleKey);
+    return () => {
+      document.removeEventListener("mousedown", handleOutside);
+      window.removeEventListener("keydown", handleKey);
+    };
+  }, [open]);
+
+  const trimmed = value.trim();
+  const isExactPreset = options.some((opt) => opt.toLowerCase() === trimmed.toLowerCase());
+  const filteredOptions =
+    !trimmed || isExactPreset
+      ? options
+      : options.filter((opt) => opt.toLowerCase().includes(trimmed.toLowerCase()));
+  const showCustomOption = Boolean(trimmed && !isExactPreset);
+
+  return (
+    <div ref={rootRef} className="relative">
+      <label
+        htmlFor={inputId}
+        className="block text-[12px] font-medium leading-[1.45] text-[#776a81]"
+      >
+        {label}
+      </label>
+
+      <div className="mt-[8px] flex h-[49px] w-full items-center justify-between rounded-[10px] border border-[#e7e0ef] bg-[#fcfafe] px-[14px] transition-colors focus-within:border-[#7453a6] focus-within:bg-white focus-within:ring-2 focus-within:ring-[#7453a6]/15 hover:border-[#cfc1e2]">
+        <div className="flex min-w-0 flex-1 items-center gap-[12px]">
+          {leadingIconSrc ? (
+            <img src={leadingIconSrc} alt="" width={20} height={20} className="shrink-0" />
+          ) : null}
+          <input
+            id={inputId}
+            type="text"
+            role="combobox"
+            aria-expanded={open}
+            aria-controls={listboxId}
+            aria-autocomplete="list"
+            value={value}
+            onFocus={() => setOpen(true)}
+            onChange={(event) => {
+              onChange(event.target.value);
+              setOpen(true);
+            }}
+            placeholder="Type any job role (e.g. Nurse, AI Engineer, Accountant)…"
+            className="h-full w-full min-w-0 bg-transparent text-[14px] font-medium text-[#4c3e59] placeholder:font-normal placeholder:text-[#8d819c] focus:outline-none"
+          />
+        </div>
+        <button
+          type="button"
+          aria-label="Toggle suggested roles"
+          onClick={() => setOpen((prev) => !prev)}
+          className="ml-2 inline-flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-[6px] hover:bg-[#f3eefb]"
+        >
+          <img
+            src="/assets/practice/setup-chevron.svg"
+            alt=""
+            width={18}
+            height={18}
+            className={`shrink-0 transition-transform duration-200 motion-reduce:transition-none ${
+              open ? "rotate-180" : ""
+            }`}
+          />
+        </button>
+      </div>
+
+      {open && (showCustomOption || filteredOptions.length > 0) ? (
+        <ul
+          id={listboxId}
+          role="listbox"
+          aria-label={label}
+          className="absolute left-0 z-30 mt-1.5 max-h-60 w-full overflow-y-auto rounded-[10px] border border-[#ddd1ed] bg-white p-1.5 shadow-[0_12px_28px_rgba(66,48,82,0.12)]"
+        >
+          {showCustomOption ? (
+            <li role="option" aria-selected={true}>
+              <button
+                type="button"
+                onClick={() => {
+                  onChange(trimmed);
+                  setOpen(false);
+                }}
+                className="flex w-full cursor-pointer items-center justify-between rounded-[7px] bg-[#f3eefb] px-3 py-2 text-left text-[13px] font-semibold text-[#5b3d82]"
+              >
+                <span>Use custom role: “{trimmed}”</span>
+                <span aria-hidden="true" className="text-[12px] text-[#745396]">
+                  ✓
+                </span>
+              </button>
+            </li>
+          ) : null}
+          {filteredOptions.map((option) => {
+            const selected = option.toLowerCase() === trimmed.toLowerCase();
+            return (
+              <li key={option} role="option" aria-selected={selected}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onChange(option);
+                    setOpen(false);
+                  }}
+                  className={`flex w-full cursor-pointer items-center justify-between rounded-[7px] px-3 py-2 text-left text-[13px] transition-colors ${
+                    selected
+                      ? "bg-[#f3eefb] font-semibold text-[#5b3d82]"
+                      : "text-[#4c3e59] hover:bg-[#faf7fe]"
+                  }`}
+                >
+                  <span>{option}</span>
+                  {selected ? (
+                    <span aria-hidden="true" className="text-[12px] text-[#745396]">
+                      ✓
+                    </span>
+                  ) : null}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      ) : null}
+    </div>
+  );
+}
+
+/**
  * Screen 01 · Before the conversation (Figma node 5:2).
  * Configure role, difficulty, question count, and coach tone before launching a session.
  */
@@ -160,8 +319,15 @@ export function InterviewSetupView({
   config,
   onChangeConfig,
   onStartInterview,
+  uploadedResume = null,
+  isUploadingResume = false,
+  resumeError = null,
+  isStarting = false,
+  onUploadResume,
+  onRemoveResume,
 }: InterviewSetupViewProps) {
   const toneRadioRefs = useRef<Array<HTMLButtonElement | null>>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleToneKeyDown = (index: number, event: React.KeyboardEvent<HTMLButtonElement>) => {
     if (event.key !== "ArrowLeft" && event.key !== "ArrowRight" && event.key !== "Home" && event.key !== "End") {
@@ -228,15 +394,14 @@ export function InterviewSetupView({
             Choose what feels right. You can try something different next time.
           </p>
 
-          {/* Job role selector */}
+          {/* Job role combobox (type any role or choose a preset) */}
           <div className="mt-[22px]">
-            <SetupDropdown<JobRole>
+            <RoleCombobox
               label="Job role"
-              variant="large"
               value={config.role}
               options={JOB_ROLE_OPTIONS}
               leadingIconSrc="/assets/practice/setup-briefcase.svg"
-              onSelect={(role) => onChangeConfig({ ...config, role })}
+              onChange={(role) => onChangeConfig({ ...config, role })}
             />
           </div>
 
@@ -296,6 +461,75 @@ export function InterviewSetupView({
             </div>
           </div>
 
+          {/* Optional Resume Upload for ChromaDB RAG */}
+          {onUploadResume ? (
+            <div className="mt-[18px]">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".pdf,.docx,.txt,.md"
+                className="sr-only"
+                onChange={(event) => {
+                  const file = event.target.files?.[0];
+                  if (file) {
+                    onUploadResume(file);
+                  }
+                  event.currentTarget.value = "";
+                }}
+              />
+              {uploadedResume ? (
+                <div className="flex flex-wrap items-center justify-between gap-3 rounded-[10px] border border-[#ddd1ed] bg-[#f7f4fa] px-3.5 py-2.5">
+                  <div className="flex min-w-0 items-center gap-2.5">
+                    <span className="inline-flex size-6 shrink-0 items-center justify-center rounded-[6px] bg-[#e5daf4] text-[11px] font-semibold text-[#5d3f7f]">
+                      ✓
+                    </span>
+                    <div className="min-w-0">
+                      <p className="truncate text-[12px] font-semibold text-[#4c3e59]">
+                        {uploadedResume.filename}
+                      </p>
+                      <p className="text-[11px] text-[#796985]">
+                        {uploadedResume.chunkCount} chunks indexed in ChromaDB · tailors questions &amp; rubric
+                      </p>
+                    </div>
+                  </div>
+                  {onRemoveResume ? (
+                    <button
+                      type="button"
+                      onClick={onRemoveResume}
+                      className="cursor-pointer rounded-[7px] px-2.5 py-1 text-[11px] font-medium text-[#796985] transition-colors hover:bg-white hover:text-[#4c3e59]"
+                    >
+                      Remove
+                    </button>
+                  ) : null}
+                </div>
+              ) : (
+                <div className="flex flex-wrap items-center justify-between gap-3 rounded-[10px] border border-dashed border-[#ddd1ed] bg-[#fcfafe] px-3.5 py-2.5">
+                  <div className="min-w-0">
+                    <p className="text-[12px] font-medium text-[#4c3e59]">
+                      Resume context <span className="font-normal text-[#796985]">(optional · PDF, DOCX, TXT)</span>
+                    </p>
+                    <p className="text-[11px] text-[#796985]">
+                      Tailors questions &amp; scoring to your actual projects via RAG
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    disabled={isUploadingResume}
+                    onClick={() => fileInputRef.current?.click()}
+                    className="inline-flex h-[32px] shrink-0 cursor-pointer items-center rounded-[8px] border border-[#ddd1ed] bg-white px-3 text-[12px] font-medium text-[#5b3d82] transition-colors hover:bg-[#f4effa] disabled:cursor-wait disabled:opacity-60"
+                  >
+                    {isUploadingResume ? "Indexing…" : "Upload resume"}
+                  </button>
+                </div>
+              )}
+              {resumeError ? (
+                <p role="alert" className="mt-1.5 text-[11px] font-medium text-[#9e3a4a]">
+                  {resumeError}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
+
           <div className="mt-[22px] h-px bg-[#eee8f3]" />
 
           {/* Bottom bar */}
@@ -309,10 +543,14 @@ export function InterviewSetupView({
 
             <button
               type="button"
-              onClick={onStartInterview}
-              className="btn-tactile group flex h-[40px] w-full cursor-pointer items-center justify-between gap-4 rounded-[11px] bg-[#c7b6f0] px-[21px] text-[13px] font-semibold text-[#423052] hover:bg-[#bca9eb] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7453a6] sm:w-[188px]"
+              disabled={isStarting || isUploadingResume || !config.role.trim()}
+              onClick={() => {
+                onChangeConfig({ ...config, role: config.role.trim() });
+                onStartInterview();
+              }}
+              className="btn-tactile group flex h-[40px] w-full cursor-pointer items-center justify-between gap-4 rounded-[11px] bg-[#c7b6f0] px-[21px] text-[13px] font-semibold text-[#423052] hover:bg-[#bca9eb] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7453a6] disabled:cursor-not-allowed disabled:opacity-65 sm:w-[188px]"
             >
-              <span>Start interview</span>
+              <span>{isStarting ? "Preparing…" : "Start interview"}</span>
               <img
                 src="/assets/practice/setup-arrow-right.svg"
                 alt=""

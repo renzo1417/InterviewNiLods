@@ -67,6 +67,11 @@ export function SessionsView({
   const [sortDesc, setSortDesc] = useState(true);
   const [page, setPage] = useState(1);
 
+  const availableRoles = useMemo(
+    () => Array.from(new Set([...JOB_ROLE_OPTIONS, ...records.map((r) => r.role)])),
+    [records]
+  );
+
   const completedRecords = useMemo(
     () => records.filter((r) => r.status === "completed"),
     [records]
@@ -469,7 +474,7 @@ export function SessionsView({
                   className="h-[36px] cursor-pointer rounded-[9px] border border-[#e5dfec] bg-white px-3 text-[12px] font-medium text-[#6e597c] focus:border-[#7453a6] focus:outline-none focus:ring-2 focus:ring-[#7453a6]/15"
                 >
                   <option value="all">All roles</option>
-                  {JOB_ROLE_OPTIONS.map((role) => (
+                  {availableRoles.map((role) => (
                     <option key={role} value={role}>
                       {role}
                     </option>

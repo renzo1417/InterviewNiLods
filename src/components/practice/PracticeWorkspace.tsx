@@ -32,6 +32,13 @@ import {
   type WorkspaceScreenId,
   type WorkspaceView,
 } from "./workspace-data";
+import {
+  createBackendSession,
+  endBackendSession,
+  submitBackendAnswer,
+  uploadResumeFile,
+  type UploadedResumeInfo,
+} from "@/lib/interview-api";
 import { HelpSupportView } from "./HelpSupportView";
 import { InterviewResultsView } from "./InterviewResultsView";
 import { InterviewSetupView } from "./InterviewSetupView";
@@ -148,6 +155,15 @@ export function PracticeWorkspace({ initialScreen }: PracticeWorkspaceProps) {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [activeModal, setActiveModal] = useState<ActiveWorkspaceModal>(null);
 
+  // Resume upload & live Python backend session state
+  const [uploadedResume, setUploadedResume] = useState<UploadedResumeInfo | null>(null);
+  const [isUploadingResume, setIsUploadingResume] = useState(false);
+  const [resumeError, setResumeError] = useState<string | null>(null);
+  const [isStartingSession, setIsStartingSession] = useState(false);
+  const [isSubmittingAnswer, setIsSubmittingAnswer] = useState(false);
+  const [liveNotice, setLiveNotice] = useState<string | null>(null);
+  const [liveSessionIds, setLiveSessionIds] = useState<Set<string>>(() => new Set());
+
   const rawAuthSession = useSyncExternalStore(
     subscribeToAuthSession,
     getClientAuthSessionRaw,
@@ -190,20 +206,60 @@ export function PracticeWorkspace({ initialScreen }: PracticeWorkspaceProps) {
     syncUrlScreen(screenParam);
   };
 
-  const launchInterviewWithConfig = (cfg: InterviewSetupConfig) => {
-    const fresh = createFreshInterviewSession(cfg);
+  const handleUploadResume = async (file: File) => {
+    setIsUploadingResume(true);
+    setResumeError(null);
+    try {
+      const info = await uploadResumeFile(file);
+      setUploadedResume(info);
+    } catch (error) {
+      setResumeError(
+        error instanceof Error ? error.message : "Could not upload resume. Is the backend running?"
+      );
+    } finally {
+      setIsUploadingResume(false);
+    }
+  };
+
+  const launchInterviewWithConfig = async (cfg: InterviewSetupConfig) => {
+    setIsStartingSession(true);
+    setLiveNotice(null);
+
+    let launchedSession: PracticeSessionState;
+    let isBackendBacked = false;
+
+    try {
+      launchedSession = await createBackendSession(cfg, uploadedResume);
+      isBackendBacked = true;
+    } catch {
+      launchedSession = createFreshInterviewSession(cfg);
+      setLiveNotice(
+        "Python backend offline — running in local demo mode. Start uvicorn backend.api:app for live AI & RAG."
+      );
+    } finally {
+      setIsStartingSession(false);
+    }
+
+    if (isBackendBacked) {
+      setLiveSessionIds((prev) => {
+        const next = new Set(prev);
+        next.add(launchedSession.id);
+        return next;
+      });
+    }
+
     setSetupConfig(cfg);
-    setActiveSession(fresh);
+    setActiveSession(launchedSession);
     setView("live");
     setScorePanelOpen(preferences.autoOpenLiveScore);
     syncUrlScreen(preferences.autoOpenLiveScore ? "03" : "02");
 
     // Prepend live session to history
     const newRecord: SessionHistoryRecord = {
-      id: fresh.id,
+      id: launchedSession.id,
       role: cfg.role,
-      categoryLabel: "Behavioral interview",
-      questionCount: fresh.totalQuestions,
+      categoryLabel: uploadedResume ? "Resume-tailored interview" : "Behavioral interview",
+      questionCount: launchedSession.totalQuestions,
       completedQuestions: 1,
       dateLabel: "Today",
       timeLabel: formatNowTime(),
@@ -212,10 +268,10 @@ export function PracticeWorkspace({ initialScreen }: PracticeWorkspaceProps) {
       tone: cfg.tone,
       score: null,
       status: "in_progress",
-      currentTopic: fresh.currentTopic,
-      snapshot: fresh,
+      currentTopic: launchedSession.currentTopic,
+      snapshot: launchedSession,
     };
-    setSessionHistory((prev) => [newRecord, ...prev.filter((r) => r.id !== fresh.id)]);
+    setSessionHistory((prev) => [newRecord, ...prev.filter((r) => r.id !== launchedSession.id)]);
     if (sessionsUiStatus === "empty") setSessionsUiStatus("ready");
   };
 
@@ -246,7 +302,52 @@ export function PracticeWorkspace({ initialScreen }: PracticeWorkspaceProps) {
     if (sessionsUiStatus === "empty") setSessionsUiStatus("ready");
   };
 
-  const handleSubmitAnswer = (answer: string) => {
+  const handleSubmitAnswer = async (answer: string) => {
+    if (liveSessionIds.has(activeSession.id)) {
+      setIsSubmittingAnswer(true);
+      setLiveNotice(null);
+      try {
+        const res = await submitBackendAnswer(activeSession.id, answer);
+        const next = res.session;
+        setActiveSession(next);
+
+        if (!res.accepted) {
+          setLiveNotice(
+            "Sir Bot kept the interview on track — please respond directly to the current question."
+          );
+          return;
+        }
+
+        if (next.status === "completed") {
+          recordCompletedSession(next);
+          navigateTo("results", "04");
+        } else {
+          setSessionHistory((prev) =>
+            prev.map((rec) =>
+              rec.id === next.id
+                ? {
+                    ...rec,
+                    completedQuestions: next.currentQuestionIndex,
+                    currentTopic: next.currentTopic,
+                    score: next.liveScore?.overallScore ?? rec.score,
+                    snapshot: next,
+                  }
+                : rec
+            )
+          );
+        }
+        return;
+      } catch (error) {
+        setLiveNotice(
+          error instanceof Error && error.message && !error.message.includes("Failed to fetch")
+            ? `Backend error (${error.message}) — continuing this answer locally.`
+            : "Lost connection to Python backend — continuing this answer locally."
+        );
+      } finally {
+        setIsSubmittingAnswer(false);
+      }
+    }
+
     const next = evaluateAnswerAndAdvance(activeSession, answer);
     setActiveSession(next);
     if (next.id === "session-software-engineer") {
@@ -273,7 +374,19 @@ export function PracticeWorkspace({ initialScreen }: PracticeWorkspaceProps) {
     }
   };
 
-  const handleConfirmEndInterview = () => {
+  const handleConfirmEndInterview = async () => {
+    if (liveSessionIds.has(activeSession.id)) {
+      try {
+        const completed = await endBackendSession(activeSession.id);
+        setActiveSession(completed);
+        recordCompletedSession(completed);
+        navigateTo("results", "04");
+        return;
+      } catch {
+        // Fallback to local summary if backend is unavailable
+      }
+    }
+
     const completed = buildCompletedResultsSession(activeSession);
     setActiveSession(completed);
     if (completed.id === "session-software-engineer") {
@@ -708,7 +821,20 @@ export function PracticeWorkspace({ initialScreen }: PracticeWorkspaceProps) {
             <InterviewSetupView
               config={setupConfig}
               onChangeConfig={setSetupConfig}
-              onStartInterview={() => launchInterviewWithConfig(setupConfig)}
+              onStartInterview={() => {
+                void launchInterviewWithConfig(setupConfig);
+              }}
+              uploadedResume={uploadedResume}
+              isUploadingResume={isUploadingResume}
+              resumeError={resumeError}
+              isStarting={isStartingSession}
+              onUploadResume={(file) => {
+                void handleUploadResume(file);
+              }}
+              onRemoveResume={() => {
+                setUploadedResume(null);
+                setResumeError(null);
+              }}
             />
           ) : null}
 
@@ -718,11 +844,15 @@ export function PracticeWorkspace({ initialScreen }: PracticeWorkspaceProps) {
               scorePanelOpen={scorePanelOpen}
               showStarTips={preferences.showStarTips}
               showVoiceShortcut={preferences.voiceDictationShortcut}
+              isSubmitting={isSubmittingAnswer}
+              notice={liveNotice}
               onToggleScorePanel={(open) => {
                 setScorePanelOpen(open);
                 syncUrlScreen(open ? "03" : "02");
               }}
-              onSubmitAnswer={handleSubmitAnswer}
+              onSubmitAnswer={(ans) => {
+                void handleSubmitAnswer(ans);
+              }}
             />
           ) : null}
 

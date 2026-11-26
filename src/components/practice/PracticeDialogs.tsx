@@ -9,7 +9,6 @@ import {
   type CoachTone,
   type InterviewDifficulty,
   type InterviewSetupConfig,
-  type JobRole,
   type PracticeSessionState,
   type QuestionRange,
 } from "./practice-config";
@@ -197,7 +196,10 @@ function EditDefaultsModalBody({
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
-    onSaveDefaults(draft);
+    onSaveDefaults({
+      ...draft,
+      role: draft.role.trim() || defaults.role,
+    });
     onClose();
   };
 
@@ -211,17 +213,19 @@ function EditDefaultsModalBody({
 
       <label className="block space-y-1.5">
         <span className="block text-[12px] font-medium text-[#4d365f]">Target job role</span>
-        <select
+        <input
+          type="text"
+          list="practice-default-roles"
           value={draft.role}
-          onChange={(e) => setDraft((prev) => ({ ...prev, role: e.target.value as JobRole }))}
-          className="h-[42px] w-full cursor-pointer rounded-[12px] border border-[#e3daf1] bg-[#f9f7fc] px-3.5 text-[13px] text-[#30263c] focus:border-[#7453a6] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#7453a6]/15"
-        >
+          onChange={(e) => setDraft((prev) => ({ ...prev, role: e.target.value }))}
+          placeholder="Type any job role…"
+          className="h-[42px] w-full rounded-[12px] border border-[#e3daf1] bg-[#f9f7fc] px-3.5 text-[13px] text-[#30263c] focus:border-[#7453a6] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#7453a6]/15"
+        />
+        <datalist id="practice-default-roles">
           {JOB_ROLE_OPTIONS.map((role) => (
-            <option key={role} value={role}>
-              {role}
-            </option>
+            <option key={role} value={role} />
           ))}
-        </select>
+        </datalist>
       </label>
 
       {/* Difficulty segmented */}
