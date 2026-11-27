@@ -15,9 +15,6 @@ API_KEY = os.getenv("AIKI_API_KEY") or os.getenv("OPENAI_API_KEY") or ""
 BASE_URL = os.getenv("AIKI_BASE_URL") or "https://aiki-labs.up.railway.app/api/v1"
 MODEL = os.getenv("AIKI_MODEL") or "gpt-6-luna"
 MAX_TOKENS = max(64, min(int(os.getenv("MAX_COMPLETION_TOKENS") or "700"), 800))
-CORS_ORIGINS = [
-    o.strip() for o in (os.getenv("CORS_ORIGINS") or "http://localhost:3000,http://127.0.0.1:3000").split(",") if o.strip()
-]
 
 
 class LLMResponseError(RuntimeError):

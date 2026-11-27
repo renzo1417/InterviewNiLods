@@ -1,12 +1,12 @@
 # Interview ni Lods (Sir Bot)
 
-An AI-powered mock interview coach that helps job seekers and students practice behavioral and role-specific interviews with **live STAR rubric scoring**, **resume-tailored RAG retrieval**, and **multi-layer prompt defenses**.
+An AI-powered mock interview coach built in pure Python with Streamlit that helps job seekers and students practice behavioral and role-specific interviews with **live STAR rubric scoring**, **resume-tailored RAG retrieval**, and **multi-layer prompt defenses**.
 
 ## Features
-- **Adaptive Interview Setup**: Choose your target role, difficulty (`Easy`, `Normal`, `Hard`), question count (`3-5`, `5-8`, `8-10`), and coach tone (`Friendly`, `Witty`, `Direct`).
+- **Adaptive Interview Setup**: Choose any target role, difficulty (`Easy`, `Normal`, `Hard`), question count (`3-5`, `5-8`, `8-10`), and coach tone (`Friendly`, `Witty`, `Direct`).
 - **Resume Upload + Lightweight ChromaDB RAG** (`backend/rag.py`): Upload a `.pdf`, `.docx`, `.txt`, or `.md` resume. Text is extracted, chunked, embedded locally into ChromaDB using its built-in `all-MiniLM-L6-v2` ONNX embedding model alongside STAR/role coaching guides (`backend/knowledge_base/`), and retrieved per question to tailor prompts and rubric feedback.
 - **Live STAR Rubric & Final Summary** (`backend/interview_engine.py`): Judges every answer across **Clarity**, **Structure**, **Relevance**, and **Impact** (`0.0–10.0`), then synthesizes a final score, question-by-question breakdown, and downloadable transcript.
-- **Interactive Streamlit Workspace + CLI**: Pure-Python Streamlit frontend (`streamlit_app.py` + `ui/`) calling `InterviewEngine` and `InterviewRAG` directly in-process, plus a terminal CLI (`main.py`) and optional FastAPI bridge (`backend/api.py`).
+- **Interactive Streamlit App + Terminal CLI**: Pure-Python Streamlit web application (`streamlit_app.py` + `ui/`) calling `InterviewEngine` and `InterviewRAG` directly in-process, plus an optional terminal CLI (`main.py`).
 
 ## Prompt Engineering Techniques (`backend/prompts.py`)
 1. **Role Prompting**: Grounds the model as *Sir Bot*, a supportive interview coach.
@@ -22,7 +22,7 @@ An AI-powered mock interview coach that helps job seekers and students practice 
 
 ## Tech Stack
 - **App & UI**: Python 3, Streamlit, Altair
-- **Engine & RAG**: OpenAI SDK (`gpt-6-luna`), Pydantic v2, ChromaDB (`all-MiniLM-L6-v2`), `pypdf`, `python-docx`, FastAPI (optional HTTP bridge)
+- **Engine & RAG**: OpenAI SDK (`gpt-6-luna`), Pydantic v2, ChromaDB (`all-MiniLM-L6-v2`), `pypdf`, `python-docx`
 
 ## Run Locally
 
@@ -35,11 +35,9 @@ cp .env.example .env  # Add your AIKI_API_KEY (or use Offline demo mode)
 streamlit run streamlit_app.py
 ```
 
-### 2. Optional Terminal CLI or FastAPI Bridge
+### 2. Optional Terminal CLI
 ```bash
 python main.py
-# Or FastAPI HTTP bridge:
-uvicorn backend.api:app --reload --port 8000
 ```
 
 ### 3. Run Tests

@@ -1,4 +1,4 @@
-"""Pydantic v2 models matching the Next.js frontend TypeScript contracts."""
+"""Pydantic v2 data models for Interview ni Lods sessions, rubric scoring, and transcripts."""
 
 from __future__ import annotations
 
@@ -176,27 +176,3 @@ class SessionRecord(CamelModel):
     evaluations: list[EvaluatedAnswer] = Field(default_factory=list)
     resume_id: str | None = None
     resume_matches_role: bool = True
-
-
-class ResumeUploadResponse(CamelModel):
-    resume_id: str = Field(alias="resumeId")
-    filename: str
-    char_count: int = Field(alias="charCount")
-    chunk_count: int = Field(alias="chunkCount")
-    preview: str
-
-
-class CreateSessionRequest(CamelModel):
-    config: InterviewSetupConfig = Field(default_factory=InterviewSetupConfig)
-    resume_id: str | None = Field(default=None, alias="resumeId")
-    resume_filename: str | None = Field(default=None, alias="resumeFilename")
-
-
-class SubmitAnswerRequest(CamelModel):
-    answer: str
-
-
-class SubmitAnswerResponse(CamelModel):
-    session: PracticeSessionState
-    accepted: bool
-    refusal_reason: str | None = Field(default=None, alias="refusalReason")
