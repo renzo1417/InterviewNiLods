@@ -6,7 +6,7 @@ An AI-powered mock interview coach that helps job seekers and students practice 
 - **Adaptive Interview Setup**: Choose your target role, difficulty (`Easy`, `Normal`, `Hard`), question count (`3-5`, `5-8`, `8-10`), and coach tone (`Friendly`, `Witty`, `Direct`).
 - **Resume Upload + Lightweight ChromaDB RAG** (`backend/rag.py`): Upload a `.pdf`, `.docx`, `.txt`, or `.md` resume. Text is extracted, chunked, embedded locally into ChromaDB using its built-in `all-MiniLM-L6-v2` ONNX embedding model alongside STAR/role coaching guides (`backend/knowledge_base/`), and retrieved per question to tailor prompts and rubric feedback.
 - **Live STAR Rubric & Final Summary** (`backend/interview_engine.py`): Judges every answer across **Clarity**, **Structure**, **Relevance**, and **Impact** (`0.0–10.0`), then synthesizes a final score, question-by-question breakdown, and downloadable transcript.
-- **Interactive Web Workspace + CLI**: Full Next.js + Tailwind + GSAP frontend (`src/`) connected to a FastAPI backend (`backend/api.py`), plus a terminal CLI (`main.py`).
+- **Interactive Streamlit Workspace + CLI**: Pure-Python Streamlit frontend (`streamlit_app.py` + `ui/`) calling `InterviewEngine` and `InterviewRAG` directly in-process, plus a terminal CLI (`main.py`) and optional FastAPI bridge (`backend/api.py`).
 
 ## Prompt Engineering Techniques (`backend/prompts.py`)
 1. **Role Prompting**: Grounds the model as *Sir Bot*, a supportive interview coach.
@@ -21,31 +21,26 @@ An AI-powered mock interview coach that helps job seekers and students practice 
 4. **Instruction Defense**: System prompt explicitly forbids revealing rules or engaging with off-topic chatter.
 
 ## Tech Stack
-- **Backend**: Python 3, FastAPI, OpenAI SDK (`gpt-6-luna`), Pydantic v2, ChromaDB, `pypdf`, `python-docx`
-- **Frontend**: Next.js, React, TypeScript, Tailwind CSS, GSAP, `cobe`
+- **App & UI**: Python 3, Streamlit, Altair
+- **Engine & RAG**: OpenAI SDK (`gpt-6-luna`), Pydantic v2, ChromaDB (`all-MiniLM-L6-v2`), `pypdf`, `python-docx`, FastAPI (optional HTTP bridge)
 
 ## Run Locally
 
-### 1. Backend (FastAPI + ChromaDB RAG)
+### 1. Install Dependencies & Launch Streamlit App
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
-cp .env.example .env  # Add your AIKI_API_KEY
-uvicorn backend.api:app --reload --port 8000
+cp .env.example .env  # Add your AIKI_API_KEY (or use Offline demo mode)
+streamlit run streamlit_app.py
 ```
 
-Or run the interactive terminal CLI:
+### 2. Optional Terminal CLI or FastAPI Bridge
 ```bash
 python main.py
+# Or FastAPI HTTP bridge:
+uvicorn backend.api:app --reload --port 8000
 ```
-
-### 2. Frontend (Next.js)
-```bash
-npm install
-npm run dev
-```
-Open `http://localhost:3000/practice` (defaults to `NEXT_PUBLIC_API_URL=http://localhost:8000`).
 
 ### 3. Run Tests
 ```bash

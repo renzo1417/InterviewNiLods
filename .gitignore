@@ -82,3 +82,4 @@ venv/
 .pytest_cache/
 
 graphify-out/
+data/
