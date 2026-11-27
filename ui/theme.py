@@ -225,7 +225,7 @@ def _build_stylesheet(is_landing: bool, is_setup: bool) -> str:
             }
             [data-testid="stMainBlockContainer"] {
               max-width: 1180px !important;
-              padding: 0.9rem 2.5rem 2.5rem 2.5rem !important;
+              padding: 0.55rem 2.25rem 1.75rem 2.25rem !important;
               background: #FFFFFF !important;
             }
             """
@@ -537,9 +537,15 @@ def _build_stylesheet(is_landing: bool, is_setup: bool) -> str:
       .stFormSubmitButton > button:focus-visible,
       [data-baseweb="select"] > div:focus-within,
       input:focus-visible,
-      textarea:focus-visible {{
+      textarea:not([data-testid="stChatInputTextArea"]):focus-visible {{
         outline: 2px solid var(--accent) !important;
         outline-offset: 2px !important;
+      }}
+
+      [data-testid="stChatInput"] textarea:focus-visible,
+      [data-testid="stChatInput"] textarea:focus {{
+        outline: none !important;
+        box-shadow: none !important;
       }}
 
       /* Workspace Primary Button: signature lavender #c7b6f0 with #423052 plum ink */
@@ -794,8 +800,33 @@ def _build_stylesheet(is_landing: bool, is_setup: bool) -> str:
         background-color: #FCFAFE !important;
         border: 1px solid #E8E1F0 !important;
         border-radius: 18px !important;
-        padding: 20px 22px !important;
-        min-height: 495px !important;
+        padding: 18px 20px !important;
+      }}
+
+      /* Scrollable Live Chat Thread viewport with subtle border & thin lavender scrollbar */
+      .st-key-live_chat_thread {{
+        background-color: #FFFFFF !important;
+        border: 1px solid #EFEBF5 !important;
+        border-radius: 16px !important;
+        padding: 14px 16px !important;
+        scrollbar-width: thin;
+        scrollbar-color: #D8CCE9 transparent;
+        scroll-behavior: smooth;
+      }}
+
+      .st-key-live_chat_thread::-webkit-scrollbar {{
+        width: 6px;
+      }}
+      .st-key-live_chat_thread::-webkit-scrollbar-thumb {{
+        background: #DCD1EC;
+        border-radius: 999px;
+      }}
+      .st-key-live_chat_thread::-webkit-scrollbar-track {{
+        background: transparent;
+      }}
+
+      .st-key-live_chat_thread [data-testid="stVerticalBlock"] {{
+        gap: 0.85rem !important;
       }}
 
       /* Native bordered cards across workspace views */
@@ -856,16 +887,18 @@ def _build_stylesheet(is_landing: bool, is_setup: bool) -> str:
 
       /* Chat input composer matching LiveInterviewView.tsx */
       [data-testid="stChatInput"] > div {{
-        border: 1px solid #E6E1ED !important;
+        border: 1px solid #E2D9EE !important;
         border-radius: 16px !important;
         background-color: #F8F7FA !important;
         box-shadow: none !important;
         padding: 4px 6px !important;
+        transition: border-color 150ms ease, background-color 150ms ease, box-shadow 150ms ease !important;
       }}
 
       [data-testid="stChatInput"] > div:focus-within {{
-        border-color: #BDA5DB !important;
-        background-color: #FBFAFD !important;
+        border-color: #7453A6 !important;
+        background-color: #FFFFFF !important;
+        box-shadow: 0 0 0 3px rgba(116, 83, 166, 0.14) !important;
       }}
 
       [data-testid="stChatInputSubmitButton"] {{
@@ -924,13 +957,23 @@ def _build_stylesheet(is_landing: bool, is_setup: bool) -> str:
       }}
       .inl-breadcrumb strong {{ color: var(--ink); font-weight: 500; }}
 
+      [data-testid="stMarkdownContainer"] h1.inl-page-title,
       .inl-page-title {{
-        font-size: 24px;
-        font-weight: 600;
-        line-height: 1.28;
-        letter-spacing: -0.02em;
-        color: #2C2834;
-        margin: 0;
+        font-size: 24px !important;
+        font-weight: 600 !important;
+        line-height: 1.26 !important;
+        letter-spacing: -0.022em !important;
+        color: #2C2834 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+      }}
+      [data-testid="stMarkdownContainer"] h2.inl-drawer-title {{
+        font-size: 17px !important;
+        font-weight: 600 !important;
+        line-height: 1.3 !important;
+        color: #3D304D !important;
+        margin: 0 !important;
+        padding: 0 !important;
       }}
       .inl-page-subtitle {{
         font-size: 13.5px;
@@ -1016,10 +1059,10 @@ def _build_stylesheet(is_landing: bool, is_setup: bool) -> str:
         flex-wrap: wrap;
         align-items: center;
         justify-content: space-between;
-        gap: 12px;
-        padding: 12px 0 14px 0;
+        gap: 10px;
+        padding: 8px 0 11px 0;
         border-bottom: 1px solid var(--lavender-rule);
-        margin-bottom: 16px;
+        margin-bottom: 10px;
       }}
       .inl-progress-segments {{ display: flex; align-items: center; gap: 7px; }}
       .inl-progress-seg {{
@@ -1029,34 +1072,105 @@ def _build_stylesheet(is_landing: bool, is_setup: bool) -> str:
         background: #EEEBF3;
       }}
       .inl-progress-seg.is-done {{ background: #AC91DD; }}
-      .inl-progress-meta {{ font-size: 13px; font-weight: 500; color: var(--ink-plum); }}
+      .inl-progress-meta {{ font-size: 12.5px; font-weight: 500; color: var(--ink-plum); }}
       .inl-progress-topic {{ color: var(--muted); font-weight: 400; }}
 
       /* Conversation turns */
-      .inl-thread {{ display: flex; flex-direction: column; gap: 20px; padding: 6px 4px 12px 2px; }}
-      .inl-turn-bot {{ display: flex; flex-direction: column; gap: 8px; max-width: 68ch; }}
+      .inl-turn-bot {{
+        display: flex;
+        flex-direction: column;
+        gap: 7px;
+        max-width: 94%;
+        padding: 4px 6px;
+      }}
+      .inl-turn-bot-latest {{
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        background: #FAF8FD;
+        border: 1px solid #E9E0F4;
+        border-radius: 14px;
+        padding: 14px 16px;
+      }}
       .inl-turn-head {{ display: flex; align-items: center; gap: 8px; }}
-      .inl-turn-head img {{ width: 22px; height: 22px; object-fit: contain; flex-shrink: 0; }}
-      .inl-turn-speaker {{ font-size: 12.5px; font-weight: 600; color: #51425E; }}
-      .inl-turn-time {{ font-size: 11.5px; color: var(--faint); font-variant-numeric: tabular-nums; }}
+      .inl-turn-head img {{ width: 21px; height: 21px; object-fit: contain; flex-shrink: 0; }}
+      .inl-turn-speaker {{ font-size: 12px; font-weight: 600; color: #51425E; }}
+      .inl-turn-time {{ font-size: 11px; color: var(--faint); font-variant-numeric: tabular-nums; }}
+      .inl-turn-active-tag {{
+        margin-left: auto;
+        font-size: 10.5px;
+        font-weight: 500;
+        color: #6B4D93;
+        background: #EFE7FA;
+        padding: 2px 9px;
+        border-radius: 999px;
+      }}
       .inl-turn-bot-body {{
-        padding-left: 30px;
-        font-size: 14.5px;
+        padding-left: 29px;
+        font-size: 14px;
         line-height: 1.6;
-        color: #3A3344;
+        color: #332B3D;
         white-space: pre-wrap;
       }}
-      .inl-turn-user {{ display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }}
+      .inl-turn-bot-latest .inl-turn-bot-body {{
+        padding-left: 29px;
+        color: #2A2233;
+      }}
+      .inl-turn-user {{
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 5px;
+        padding: 2px 4px;
+      }}
       .inl-turn-user-bubble {{
-        max-width: 64ch;
+        max-width: 82%;
         background: #F2EDF9;
-        border: 1px solid #E6DCF4;
-        border-radius: 14px;
-        padding: 13px 17px;
+        border: 1px solid #E5DBF4;
+        border-radius: 16px 16px 4px 16px;
+        padding: 11px 16px;
         font-size: 14px;
-        line-height: 1.58;
-        color: #463952;
+        line-height: 1.56;
+        color: #423550;
         white-space: pre-wrap;
+      }}
+
+      /* Inline Sir Bot thinking/reviewing bubble inside the chat thread */
+      .inl-thinking-card {{
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        background: #FAF8FD;
+        border: 1px dashed #D8CAE9;
+        border-radius: 14px;
+        padding: 13px 16px;
+      }}
+      .inl-thinking-row {{
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding-left: 29px;
+        font-size: 13.5px;
+        color: #6B5680;
+      }}
+      .inl-dots {{
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+      }}
+      .inl-dots span {{
+        width: 6px;
+        height: 6px;
+        border-radius: 999px;
+        background: #8D6DB9;
+        display: inline-block;
+        animation: inl-dot-pulse 1.2s ease-in-out infinite;
+      }}
+      .inl-dots span:nth-child(2) {{ animation-delay: 0.18s; }}
+      .inl-dots span:nth-child(3) {{ animation-delay: 0.36s; }}
+      @keyframes inl-dot-pulse {{
+        0%, 80%, 100% {{ opacity: 0.28; transform: scale(0.85); }}
+        40% {{ opacity: 1; transform: scale(1); }}
       }}
 
       /* STAR Rubric Bars */
